@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}BingeSuggest – Home{% endblock %}
+{% block extra_styles %}
+  /* Hero Section */
+  .hero-section {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+  }
+  .hero-title {
+    font-family: 'Righteous', sans-serif;
+    font-size: 4rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  .hero-subtitle {
+    font-family: 'Coustard', serif;
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+  }
+  .cta-buttons {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+  }
+  .cta-btn {
+    font-size: 1.2rem;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .cta-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+  /* Options Section */
+  .options-section {
+    padding: 4rem 0;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .option-circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background-color: #ff4500;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #fff;
+    margin: 1rem auto;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .option-circle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
+{% endblock %}
+{% block content %}
+  <section class="hero-section">
+    <h1 class="hero-title">🎬 BingeSuggest 🍿</h1>
+    <h2 class="hero-subtitle">Discover Movies Tailored to Your Taste</h2>
+    <p class="lead">
+      Select up to 5 of your favorite movies and get personalized recommendations.
+    </p>
+    <div class="cta-buttons">
+      <a href="#" id="getStartedButton" onclick="getStarted()" class="btn btn-primary cta-btn">Get Started</a>
+      <a href="#" id="goToWallButton" onclick="goToWall()" class="btn btn-secondary cta-btn">Movie Wall</a>
+      <a href="#" id="goToReviewButton" onclick="goToReview()" class="btn btn-success cta-btn">Review a Movie</a>
+    </div>
+  </section>
+  <section class="options-section container">
+    <div class="row">
+      <div class="col-md-4 text-center">
+        <a href="#" id="goToWatchlist" onclick="goToWatchlist()" class="option-circle">Watchlist</a>
+      </div>
+      <div class="col-md-4 text-center">
+        <a href="#" id="goToWatchedHistory" onclick="goToWatchedHistory()" class="option-circle">Watched</a>
+      </div>
+      <div class="col-md-4 text-center">
+        <a href="#" id="goToProfileButton" onclick="goToProfile()" class="option-circle">Profile</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

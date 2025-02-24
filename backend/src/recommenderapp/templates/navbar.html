@@ -1,0 +1,35 @@
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow" id="landingTopNav">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold text-light" href="#" id="backToLanding" onclick="backToLandingPage()">🍿 BingeSuggest</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+      aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavDropdown">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link text-light" href="#" id="getStartedNav" onclick="getStarted()">🎬 Get Recommendations</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-light" href="#" id="goToWallNav" onclick="goToWall()">📰 Movie Wall</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-light" href="#" id="goToReviewNav" onclick="goToReview()">📝 Review a Movie</a>
+        </li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle text-light" href="#" role="button" data-bs-toggle="dropdown"
+            aria-expanded="false" id="profileDropdown">👤 Profile</a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+            <li><a class="dropdown-item" href="#" id="goToProfileNav" onclick="goToProfile()">📖 My Profile</a></li>
+            <li><a class="dropdown-item" href="#" id="goToWatchlist" onclick="goToWatchlist()">📌 My Watchlist</a></li>
+            <li><a class="dropdown-item" href="#" id="goToWatchedHistory" onclick="goToWatchedHistory()">🎥 My Watched History</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#" id="signOut" onclick="signOut()">🚪 Sign Out</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

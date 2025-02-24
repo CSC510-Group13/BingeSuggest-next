@@ -1,0 +1,286 @@
+<!--
+Copyright (c) 2023 Nathan Kohen, Nicholas Foster, Brandon Walia, Robert Kenney
+This code is licensed under MIT license (see LICENSE for details)
+
+@author: PopcornPicks
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='stylesheet.css') }}">
+    <title>BingeSuggest</title>
+    <link rel="icon" href="{{ url_for('static', filename='Popcorn-icon.png') }}" />
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+        crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 0;
+            box-sizing: border-box;
+            color: black !important;
+        }
+
+        #userNameBanner {
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            margin: 20px 0;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px;
+        }
+
+        .section {
+            width: 48%;
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            flex-direction: column;
+        }
+
+        .friend {
+            margin-bottom: 10px;
+        }
+
+        .friend button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .friend-dropdown {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+
+        .friend-dropdown a {
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    {% include 'navbar.html' %}
+    <h1 id="userNameBanner" style="margin-top: 60px;" class=""></h1>
+
+    <div class="container">
+        <div class="section">
+            <h2>Your Reviewed Movies</h2>
+            <ul id="userMovies">
+                <!-- Movie items will be added here -->
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Your Friends</h2>
+            <ul id="friendsList">
+                <!-- Friend items will be added here -->
+            </ul>
+        </div>
+    </div>
+
+    <div>
+        <input class="form-control mr-sm-2" type="text" placeholder="Enter Your Friend's Username"
+                        aria-label="FriendId" id="addFriend"
+                        style="width:120%; align-items: center; border-radius: 40px; margin-bottom: 20px;" />
+                
+        <button id="friendButton" onclick="friend()" class="btn btn-primary mx-auto">Add Friend</button></div>
+
+    <!-- <button id="backToLanding" onclick="backToLandingPage()" class="btn btn-primary mx-auto">Return home.</button> -->
+
+    <script>
+
+        // Function to handle Get Started button click
+        function backToLandingPage() {
+            // Navigate to the search page
+            $("#loaderLanding").attr("class", "d-flex justify-content-center");
+            $(".container").hide();
+            $("#post-container").hide();
+            setTimeout(function () {
+                window.location.href = "/landing" // Replace with the actual URL of your search page
+            }, 2000);
+        }
+
+        // Bind the getStarted function to the Get Started button click
+        $("#backToLanding").click(function () {
+            backToLandingPage();
+        });
+
+        window.onload = function () {
+            getRecentMoviesProfile();
+            getUserName();
+            getFriends();
+        }
+
+        function getUserName() {
+            $.ajax({
+                type: 'GET',
+                url: '/getUserName',
+                contentType: "application/json;charset=UTF-8",
+                success: function (response) {
+                    const resp = "Welcome " + response + "!";
+                    $("#userNameBanner").append(resp);
+                },
+                error: function (error) {
+                }
+            });
+        }
+
+        function getRecentMoviesProfile() {
+            $.ajax({
+                type: 'GET',
+                url: '/getRecentMovies',
+                contentType: "application/json;charset=UTF-8",
+                success: function (response) {
+                    response.forEach(function(element) {
+                        const userMovies = document.getElementById("userMovies");
+                        const listItem = document.createElement("li");
+                        listItem.classList.add("movie");
+                        const movieText = document.createTextNode(element.name + ": " + element.score + "/10 stars");
+                        listItem.appendChild(movieText);
+                        userMovies.appendChild(listItem);
+                    });
+                },
+                error: function (error) {
+                }
+            });
+        }
+
+        function getFriends() {
+
+            $.ajax({
+                type: 'GET',
+                url: '/getFriends',
+                contentType: "application/json;charset=UTF-8",
+                success: function (response) {
+                    friendsData = response;
+                    console.log(friendsData);
+
+                    // Populate friends list with buttons to show recent movies
+                    const friendsList = document.getElementById("friendsList");
+                    friendsData = JSON.stringify(friendsData);
+
+                    JSON.parse(friendsData).forEach(function(friend) {
+
+                        friend = friend[0];
+                        console.log(friend);
+
+                        $.ajax({
+                            type: 'POST',
+                            url: '/getRecentFriendMovies',
+                            data: JSON.stringify(friend),
+                            contentType: "application/json;charset=UTF-8",
+                            success: function (response) {
+
+                                recentMovies = response;
+
+                                const listItem = document.createElement("li");
+                                listItem.classList.add("friend");
+
+                                const friendName = document.createTextNode(friend + " ");
+                                listItem.appendChild(friendName);
+
+                                const showMoviesButton = document.createElement("button");
+                                showMoviesButton.textContent = "Show Movies";
+                                showMoviesButton.onclick = function () {
+                                    showFriendMovies(recentMovies);
+                                };
+
+                                listItem.appendChild(showMoviesButton);
+
+                                const dropdown = document.createElement("div");
+                                dropdown.classList.add("friend-dropdown");
+
+                                console.log(recentMovies);
+
+                                recentMovies.forEach(function(recentMovie) {
+                                    const movieLink = document.createElement("a");
+                                    movieLink.textContent = recentMovie.name + ": " + recentMovie.score + "/10 stars";
+                                    dropdown.appendChild(movieLink);
+                                });
+
+                                listItem.appendChild(dropdown);
+
+                                friendsList.appendChild(listItem);
+
+                            },
+                            error: function (error) {
+
+                            }
+                        });
+                    });
+                },
+                error: function (error) {
+                }
+            });
+        
+
+            
+        }
+
+        function showFriendMovies(recentMovies) {
+            // Hide all friend-dropdowns
+            const friendDropdowns = document.querySelectorAll(".friend-dropdown");
+            friendDropdowns.forEach(function(dropdown) {
+                dropdown.style.display = "none";
+            });
+
+            // Show the dropdown for the clicked friend
+            const clickedFriendDropdown = event.target.nextElementSibling;
+            clickedFriendDropdown.style.display = "block";
+
+            // Close the dropdown if the user clicks outside of it
+            window.onclick = function (event) {
+                if (!event.target.matches('.friend button')) {
+                    friendDropdowns.forEach(function(dropdown) {
+                        dropdown.style.display = "none";
+                    });
+                }
+            }
+        }
+    </script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
