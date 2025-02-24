@@ -217,43 +217,18 @@ const SearchPage = () => {
     handleSearch(term);
   };
 
-const handleSelectMovie = async (movieTitle) => {
-  console.log("Selected movie:", movieTitle); // Debugging
-
-  try {
-    // Fetch IMDb ID using new `/get_imdb_id` route
-    const response = await fetch(`${API_BASE_URL}/get_imdb_id`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ movie_name: movieTitle }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const imdbId = data.imdb_id;
-
-      if (imdbId) {
-        console.log("Redirecting to IMDb:", `https://www.imdb.com/title/${imdbId}/`);
-
-        // Open IMDb page in a new tab
-        window.open(`https://www.imdb.com/title/${imdbId}/`, "_blank");
-      } else {
-        console.error("IMDb ID not found for:", movieTitle);
-      }
-    } else {
-      console.error("Failed to fetch IMDb ID for:", movieTitle);
+  const handleSelectMovie = (movieTitle) => {
+    // Find the movie object with matching title to extract imdb_id
+    const selectedMovie = searchResults.find((movie) => movie === movieTitle);
+    if (selectedMovie) {
+      const imdbId = selectedMovie.split("(").pop().split(")")[0].trim(); //Extracting from parentheses
+      //redirect to the new movie page
+      window.location.href = `/movie/${imdbId}`;
     }
-  } catch (error) {
-    console.error("Error fetching IMDb ID:", error);
-  }
-
-  setSearchTerm("");
-  setSearchResults([]);
-  setIsDropdownOpen(false);
-};
-
-
-
+    setSearchTerm("");
+    setSearchResults([]);
+    setIsDropdownOpen(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -1180,6 +1155,63 @@ const MoviePage = ({ user }) => {
   );
 };
 
+const RecommendationGenieTab: React.FC = () => {
+  const [query, setQuery] = useState("");
+  const [recommendations, setRecommendations] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchAIRecommendations = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/ai_recommendations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRecommendations(data.recommendations);
+      }
+    } catch (err) {
+      console.error("Error fetching AI recommendations:", err);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="p-4">
+      <h2 className="text-lg font-bold">🔮 Recommendation Genie</h2>
+      <p className="text-sm text-gray-600">
+        Ask the Genie for movie recommendations based on mood, genre, or theme!
+      </p>
+
+      <Input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="E.g., 'A sci-fi adventure with a deep storyline'"
+        className="mt-2"
+      />
+      <Button onClick={fetchAIRecommendations} className="mt-2">
+        {loading ? "Summoning Genie..." : "Ask the Genie"}
+      </Button>
+
+      {recommendations.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-sm font-bold">✨ Magic Picks for You:</h3>
+          <ul className="mt-2">
+            {recommendations.map((movie, index) => (
+              <li key={index} className="text-sm text-gray-700">
+                {movie}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const App = () => {
   const [user, setUser] = useState(null);
 
@@ -1228,10 +1260,11 @@ const App = () => {
       )}
 
       <Tabs defaultValue={user ? "search" : "login"} className="w-full">
-        <TabsList className="grid w-full grid-cols-7 mb-4">
+        <TabsList className="grid w-full grid-cols-8 mb-4">
           {!user && <TabsTrigger value="login">Login</TabsTrigger>}
           <TabsTrigger value="search">Search</TabsTrigger>
           <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+          <TabsTrigger value="recommendationGenie">🔮 Recommendation Genie</TabsTrigger>
           <TabsTrigger value="watchlist">Watchlist</TabsTrigger>
           <TabsTrigger value="watched_history">Watched History</TabsTrigger>
           <TabsTrigger value="wall">Wall</TabsTrigger>
@@ -1242,6 +1275,9 @@ const App = () => {
             <LoginPage setUser={setUser} />
           </TabsContent>
         )}
+        <TabsContent value="recommendationGenie">
+          <RecommendationGenieTab />
+        </TabsContent>
         <TabsContent value="search">
           <SearchPage />
         </TabsContent>
