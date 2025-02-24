@@ -1,0 +1,4 @@
+# .coveragerc
+
+[run]
+include = src/recommenderapp/*,src/prediction_scripts/*

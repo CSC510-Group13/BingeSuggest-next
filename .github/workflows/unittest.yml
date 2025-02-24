@@ -1,0 +1,106 @@
+name: Unittest
+
+on:
+  push:
+    branches: [ main ]
+
+  schedule:
+    - cron: "00 23 * * *"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          # The MySQL docker container requires these environment variables to be set
+          # so we can create and migrate the test database.
+          # See: https://hub.docker.com/_/mysql
+          MYSQL_DATABASE: testdb
+          MYSQL_ROOT_PASSWORD: root
+          DB_HOST: 127.0.0.1
+        ports:
+          # Opens port 3306 on service container and host
+          # https://docs.github.com/en/actions/using-containerized-services/about-service-containers
+          - 3306:3306
+          # Before continuing, verify the mysql container is reachable from the ubuntu host
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    strategy:
+      matrix:
+        python-version: ["3.*"]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Create env file
+      run: |
+        cat << EOF > .env
+        DB_PASSWORD='root'
+        SALT='$2b$12$3CGhNGVfUNXrjZL4rtPxaO54ey4FL5Z/AB7hE3dRLJOP5NKG7ibnO'
+        EOF
+    - name: Set up DB
+      run: |
+        mysql -h 127.0.0.1 --port 3306 -u root -proot < test/test_init.sql
+    
+    #utils test cases
+    - name: Running test cases for utils.py
+      run: python test/test_util.py
+    
+    # sap test cases
+    - name: Running test cases for watchlist
+      run: python test_v7/sap/test_watchlist.py
+    - name: Running test cases for predicting actor
+      run: python test_v7/sap/test_predict_actor.py
+    - name: Running test cases for predicting genre
+      run: python test_v7/sap/test_predict_genre.py
+    - name: Running test cases for predicting director
+      run: python test_v7/sap/test_predict_director.py
+    - name: Running test cases for predicting all
+      run: python test_v7/sap/test_predict_all.py
+    - name: Running test cases for searching
+      run: python test_v7/sap/test_search.py
+    - name: Running test cases for DB
+      run: python test_v7/sap/test_DB.py
+    - name: Running test cases for email
+      run: python test_v7/sap/test_email_content.py
+
+    # vsr test cases
+    - name: Running test cases for predicting actor
+      run: python test_v7/das/test_predict_actor.py
+    - name: Running test cases for predicting genre
+      run: python test_v7/das/test_predict_genre.py
+    - name: Running test cases for predicting director
+      run: python test_v7/das/test_predict_director.py
+    - name: Running test cases for predicting all
+      run: python test_v7/das/test_predict_all.py
+    - name: Running test cases for searching
+      run: python test_v7/das/test_search.py
+
+    # das test cases
+    - name: Running test cases for watchlist
+      run: python test_v7/das/test_watchlist.py
+    - name: Running test cases for predicting actor
+      run: python test_v7/das/test_predict_actor.py
+    - name: Running test cases for predicting genre
+      run: python test_v7/das/test_predict_genre.py
+    - name: Running test cases for predicting director
+      run: python test_v7/das/test_predict_director.py
+    - name: Running test cases for predicting all
+      run: python test_v7/das/test_predict_all.py
+    - name: Running test cases for searching
+      run: python test_v7/das/test_search.py
+    - name: Running test cases for DB
+      run: python test_v7/das/test_DB.py
+
+    # test cases for v7
+    - name: Running test cases for adding to watched history
+      run: python test_v7/watchedHistory/test_add_to_watched_history.py
+    - name: Running test cases for removing from watched history
+      run: python test_v7/watchedHistory/test_remove_from_watched_history.py
