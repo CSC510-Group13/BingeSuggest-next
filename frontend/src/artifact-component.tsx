@@ -229,43 +229,43 @@ const SearchPage = () => {
     handleSearch(term);
   };
 
-const handleSelectMovie = async (movieTitle) => {
-  console.log("Selected movie:", movieTitle); // Debugging
+  const handleSelectMovie = async (movieTitle) => {
+    console.log("Selected movie:", movieTitle); // Debugging
 
-  try {
-    // Fetch IMDb ID using new `/get_imdb_id` route
-    const response = await fetch(`${API_BASE_URL}/get_imdb_id`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ movie_name: movieTitle }),
-    });
+    try {
+      // Fetch IMDb ID using new `/get_imdb_id` route
+      const response = await fetch(`${API_BASE_URL}/get_imdb_id`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ movie_name: movieTitle }),
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      const imdbId = data.imdb_id;
+      if (response.ok) {
+        const data = await response.json();
+        const imdbId = data.imdb_id;
 
-      if (imdbId) {
-        console.log("Redirecting to IMDb:", `https://www.imdb.com/title/${imdbId}/`);
+        if (imdbId) {
+          console.log(
+            "Redirecting to IMDb:",
+            `https://www.imdb.com/title/${imdbId}/`
+          );
 
-        // Open IMDb page in a new tab
-        window.open(`https://www.imdb.com/title/${imdbId}/`, "_blank");
+          // Open IMDb page in a new tab
+          window.open(`https://www.imdb.com/title/${imdbId}/`, "_blank");
+        } else {
+          console.error("IMDb ID not found for:", movieTitle);
+        }
       } else {
-        console.error("IMDb ID not found for:", movieTitle);
+        console.error("Failed to fetch IMDb ID for:", movieTitle);
       }
-    } else {
-      console.error("Failed to fetch IMDb ID for:", movieTitle);
+    } catch (error) {
+      console.error("Error fetching IMDb ID:", error);
     }
-  } catch (error) {
-    console.error("Error fetching IMDb ID:", error);
-  }
 
-  setSearchTerm("");
-  setSearchResults([]);
-  setIsDropdownOpen(false);
-};
-
-
-
+    setSearchTerm("");
+    setSearchResults([]);
+    setIsDropdownOpen(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -355,6 +355,24 @@ const RecommendationsPage = ({ user }) => {
     }
   };
 
+  // Function to fetch movie details by IMDb ID
+  const fetchMovieDetails = async (imdbId) => {
+    try {
+      const response = await fetch(
+        `http://www.omdbapi.com/?i=${imdbId}&apikey=${process.env.NEXT_PUBLIC_OMDB_API_KEY}`
+      );
+      if (response.ok) {
+        return await response.json();
+      } else {
+        console.error("Failed to fetch movie details for IMDb ID:", imdbId);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching movie details for IMDb ID:", imdbId, error);
+      return null;
+    }
+  };
+
   const handleSelectMovie = async (movieTitle) => {
     try {
       const response = await fetch(`${API_BASE_URL}/get_imdb_id`, {
@@ -412,13 +430,16 @@ const RecommendationsPage = ({ user }) => {
       <Button onClick={fetchRecommendations}>Get Recommendations</Button>
       <ul className="mt-4">
         {recommendations.map((movie, index) => (
-          <li key={index} className="mb-2">
+          <li key={index} className="mb-2 flex items-center">
+            {" "}
+            {/* Added flex container */}
             <span
               className="text-blue-500 hover:underline cursor-pointer"
               onClick={() => handleSelectMovie(movie.title)}
             >
               {movie.title}
             </span>
+            <span className="ml-2 text-gray-600">({movie.genre})</span>
           </li>
         ))}
       </ul>
@@ -433,12 +454,37 @@ const WatchlistPage = ({ user }) => {
   const [deleteTrigger, setDeleteTrigger] = useState(false);
   const [addTrigger, setAddTrigger] = useState(false);
 
+  // Function to fetch movie details by IMDb ID
+  const fetchMovieDetails = async (imdbId) => {
+    try {
+      const response = await fetch(
+        `http://www.omdbapi.com/?i=${imdbId}&apikey=${process.env.NEXT_PUBLIC_OMDB_API_KEY}`
+      );
+      if (response.ok) {
+        return await response.json();
+      } else {
+        console.error("Failed to fetch movie details for IMDb ID:", imdbId);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching movie details for IMDb ID:", imdbId, error);
+      return null;
+    }
+  };
+
   const fetchWatchlist = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/getWatchlistData`);
       if (response.ok) {
         const data = await response.json();
-        setWatchlist(data);
+        // Fetch movie details for each movie in the watchlist
+        const detailedWatchlist = await Promise.all(
+          data.map(async (item) => {
+            const movieDetails = await fetchMovieDetails(item.imdb_id);
+            return { ...item, ...movieDetails }; // Combine watchlist item with movie details
+          })
+        );
+        setWatchlist(detailedWatchlist);
       } else {
         console.error("Failed to fetch watchlist");
       }
@@ -536,7 +582,8 @@ const WatchlistPage = ({ user }) => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Movie Name</TableHead>
+            <TableHead className="w-[100px]">Poster</TableHead>
+            <TableHead className="w-[150px]">Movie Name</TableHead>
             <TableHead>Time Added</TableHead>
             <TableHead className="text-right">Remove</TableHead>
           </TableRow>
@@ -544,6 +591,14 @@ const WatchlistPage = ({ user }) => {
         <TableBody>
           {watchlist.map((item, index) => (
             <TableRow key={index}>
+              <TableCell>
+                {/* Display movie poster */}
+                <img
+                  src={item.Poster}
+                  alt={item.name}
+                  className="h-12 w-12 object-cover"
+                />
+              </TableCell>
               <TableCell className="font-medium">
                 <a
                   href={`/movie/${item.imdb_id}`}
@@ -595,12 +650,37 @@ const WatchedHistoryPage = ({ user }) => {
   const [deleteTrigger, setDeleteTrigger] = useState(false);
   const [addTrigger, setAddTrigger] = useState(false);
 
+  // Function to fetch movie details by IMDb ID
+  const fetchMovieDetails = async (imdbId) => {
+    try {
+      const response = await fetch(
+        `http://www.omdbapi.com/?i=${imdbId}&apikey=${process.env.NEXT_PUBLIC_OMDB_API_KEY}`
+      );
+      if (response.ok) {
+        return await response.json();
+      } else {
+        console.error("Failed to fetch movie details for IMDb ID:", imdbId);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching movie details for IMDb ID:", imdbId, error);
+      return null;
+    }
+  };
+
   const fetchWatchedHistory = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/getWatchedHistoryData`);
       if (response.ok) {
         const data = await response.json();
-        setWatchedHistory(data);
+        // Fetch movie details for each movie in watched history
+        const detailedWatchedHistory = await Promise.all(
+          data.map(async (item) => {
+            const movieDetails = await fetchMovieDetails(item.imdb_id);
+            return { ...item, ...movieDetails }; // Combine history item with movie details
+          })
+        );
+        setWatchedHistory(detailedWatchedHistory);
       } else {
         console.error("Failed to fetch watched history");
       }
@@ -613,6 +693,7 @@ const WatchedHistoryPage = ({ user }) => {
       );
     }
   };
+
   const handleDeleteFromWatchedHistory = async (imdb_id) => {
     try {
       const response = await fetch(`${API_BASE_URL}/removeFromWatchedHistory`, {
@@ -714,7 +795,8 @@ const WatchedHistoryPage = ({ user }) => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Movie Name</TableHead>
+            <TableHead className="w-[100px]">Poster</TableHead>
+            <TableHead className="w-[150px]">Movie Name</TableHead>
             <TableHead>Watched Date</TableHead>
             <TableHead className="text-right">Remove</TableHead>
           </TableRow>
@@ -722,6 +804,14 @@ const WatchedHistoryPage = ({ user }) => {
         <TableBody>
           {watchedHistory.map((item, index) => (
             <TableRow key={index}>
+              {/* Display movie poster */}
+              <TableCell>
+                <img
+                  src={item.Poster}
+                  alt={item.movie_name}
+                  className="h-12 w-12 object-cover"
+                />
+              </TableCell>
               <TableCell className="font-medium">
                 <a
                   href={`/movie/${item.imdb_id}`}
@@ -775,12 +865,37 @@ const WallPage = ({ user }) => {
   const [reviewPosted, setReviewPosted] = useState(false);
   const [addTrigger, setAddTrigger] = useState(false);
 
+  // Function to fetch movie details by IMDb ID
+  const fetchMovieDetails = async (imdbId) => {
+    try {
+      const response = await fetch(
+        `http://www.omdbapi.com/?i=${imdbId}&apikey=${process.env.NEXT_PUBLIC_OMDB_API_KEY}`
+      );
+      if (response.ok) {
+        return await response.json();
+      } else {
+        console.error("Failed to fetch movie details for IMDb ID:", imdbId);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching movie details for IMDb ID:", imdbId, error);
+      return null;
+    }
+  };
+
   const fetchWallPosts = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/getWallData`);
       if (response.ok) {
         const data = await response.json();
-        setWallPosts(data);
+        // Fetch movie details for each wall post
+        const detailedWallPosts = await Promise.all(
+          data.map(async (post) => {
+            const movieDetails = await fetchMovieDetails(post.imdb_id);
+            return { ...post, ...movieDetails }; // Combine post with movie details
+          })
+        );
+        setWallPosts(detailedWallPosts);
       } else {
         console.error("Failed to fetch wall posts");
       }
@@ -843,9 +958,19 @@ const WallPage = ({ user }) => {
         <ScrollArea className="h-72 w-full rounded-md border">
           <div className="p-4">
             {wallPosts.map((post, index) => (
-              <Card key={index} className="mb-4">
-                <CardHeader>
-                  <h3 className="text-lg font-semibold">
+              <Card key={index} className="mb-4 flex">
+                {" "}
+                {/* Added flex container */}
+                <CardHeader className="w-1/4 pr-4">
+                  {" "}
+                  {/* Adjust width and spacing */}
+                  {/* Display movie poster */}
+                  <img
+                    src={post.Poster}
+                    alt={post.name}
+                    className="h-20 w-20 object-cover rounded"
+                  />
+                  <h3 className="text-lg font-semibold mt-2">
                     <a
                       href={`/movie/${post.imdb_id}`}
                       className="text-blue-500 hover:underline"
@@ -857,10 +982,14 @@ const WallPage = ({ user }) => {
                     Reviewed by {post.username} - {post.time}
                   </p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="w-3/4">
+                  {" "}
+                  {/* Adjust width */}
                   <p className="text-gray-700">"{post.review}"</p>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="w-1/4">
+                  {" "}
+                  {/* Adjust width */}
                   <p className="text-gray-700">Rating: {post.score}/10</p>
                 </CardFooter>
               </Card>
@@ -880,7 +1009,7 @@ const WallPage = ({ user }) => {
           role="alert"
         >
           <strong className="font-bold">Success!</strong>
-          <span className="block sm:inline"> Your review has been posted.</span>
+          <span className="block sm:inline"> Your review has been posted</span>
         </div>
       )}
       <div className="mb-4">
@@ -915,9 +1044,19 @@ const WallPage = ({ user }) => {
       <ScrollArea className="h-72 w-full rounded-md border">
         <div className="p-4">
           {wallPosts.map((post, index) => (
-            <Card key={index} className="mb-4">
-              <CardHeader>
-                <h3 className="text-lg font-semibold">
+            <Card key={index} className="mb-4 flex">
+              {" "}
+              {/* Added flex container */}
+              <CardHeader className="w-1/4 pr-4">
+                {" "}
+                {/* Adjust width and spacing */}
+                {/* Display movie poster */}
+                <img
+                  src={post.Poster}
+                  alt={post.name}
+                  className="h-20 w-20 object-cover rounded"
+                />
+                <h3 className="text-lg font-semibold mt-2">
                   <a
                     href={`/movie/${post.imdb_id}`}
                     className="text-blue-500 hover:underline"
@@ -929,10 +1068,14 @@ const WallPage = ({ user }) => {
                   Reviewed by {post.username} - {post.time}
                 </p>
               </CardHeader>
-              <CardContent>
+              <CardContent className="w-3/4">
+                {" "}
+                {/* Adjust width */}
                 <p className="text-gray-700">"{post.review}"</p>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="w-1/4">
+                {" "}
+                {/* Adjust width */}
                 <p className="text-gray-700">Rating: {post.score}/10</p>
               </CardFooter>
             </Card>
@@ -952,6 +1095,24 @@ const FriendsPage = ({ user }) => {
   const [friendAdded, setFriendAdded] = useState(false);
   const [addTrigger, setAddTrigger] = useState(false);
 
+  // Function to fetch movie details by IMDb ID
+  const fetchMovieDetails = async (imdbId) => {
+    try {
+      const response = await fetch(
+        `http://www.omdbapi.com/?i=${imdbId}&apikey=${process.env.NEXT_PUBLIC_OMDB_API_KEY}`
+      );
+      if (response.ok) {
+        return await response.json();
+      } else {
+        console.error("Failed to fetch movie details for IMDb ID:", imdbId);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching movie details for IMDb ID:", imdbId, error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (user && user !== "guest") {
       fetchFriends();
@@ -970,6 +1131,11 @@ const FriendsPage = ({ user }) => {
       }
     } catch (error) {
       console.error("Error fetching friends:", error);
+      alert(
+        error.message.includes("Failed to fetch")
+          ? "Backend API cannot be reached."
+          : "Error fetching friends."
+      );
     }
   };
 
@@ -991,6 +1157,11 @@ const FriendsPage = ({ user }) => {
       }
     } catch (error) {
       console.error("Error adding friend:", error);
+      alert(
+        error.message.includes("Failed to fetch")
+          ? "Backend API cannot be reached."
+          : "Error adding friend."
+      );
     }
   };
 
@@ -1004,12 +1175,24 @@ const FriendsPage = ({ user }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setFriendActivity(data);
+        // Fetch movie details for each activity
+        const detailedActivity = await Promise.all(
+          data.map(async (activity) => {
+            const movieDetails = await fetchMovieDetails(activity.imdb_id);
+            return { ...activity, ...movieDetails }; // Combine activity with movie details
+          })
+        );
+        setFriendActivity(detailedActivity);
       } else {
         console.error("Failed to fetch friend activity");
       }
     } catch (error) {
       console.error("Error fetching friend activity:", error);
+      alert(
+        error.message.includes("Failed to fetch")
+          ? "Backend API cannot be reached."
+          : "Error fetching friend activity"
+      );
     }
   };
 
@@ -1095,21 +1278,26 @@ const FriendsPage = ({ user }) => {
           <ScrollArea className="h-72 w-full rounded-md border">
             <div className="p-4">
               {friendActivity.map((activity, index) => (
-                <div key={index} className="mb-2">
-                  <Card>
-                    <CardHeader>
+                <Card key={index} className="mb-4 flex">
+                  <CardHeader className="w-1/4 pr-4">
+                    <img
+                      src={activity.Poster}
+                      alt={activity.name}
+                      className="h-20 w-20 object-cover rounded"
+                    />
+                    <h3 className="text-lg font-semibold mt-2">
                       <span
                         className="text-blue-500 hover:underline cursor-pointer"
                         onClick={() => handleSelectMovie(activity.name)}
                       >
                         {activity.name}
                       </span>
-                    </CardHeader>
-                    <CardContent>
-                      <p>{activity.description}</p>
-                    </CardContent>
-                  </Card>
-                </div>
+                    </h3>
+                  </CardHeader>
+                  <CardContent className="w-3/4">
+                    <p>Rating: {activity.score}/10</p>
+                  </CardContent>
+                </Card>
               ))}
             </div>
             <ScrollBar orientation="vertical" />
